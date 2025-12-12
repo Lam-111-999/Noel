@@ -28,6 +28,13 @@ function setup() {
 function draw() {
   background(220);
 }
+function setup() {
+  createCanvas(400, 400);
+}
+
+function draw() {
+  background(220);
+}
 let video;
 let handPose;
 let hands = [];
@@ -38,6 +45,10 @@ let textImg; // Biến chứa ảnh chữ
 
 const NUM_PARTICLES = 600; 
 
+function preload() {
+  handPose = ml5.handPose();
+}
+
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
   
@@ -45,9 +56,7 @@ function setup() {
   video.size(640, 480);
   video.hide();
 
-  // Khởi tạo handpose model và bắt sự kiện predict
-  handPose = ml5.handpose(video, modelReady);
-  handPose.on('predict', gotHands);
+  handPose.detectStart(video, gotHands);
 
   for (let i = 0; i < NUM_PARTICLES; i++) {
     particles.push(new Particle(i));
@@ -62,10 +71,6 @@ function setup() {
   textImg.text("MERRY CHRISTMAS", 250, 75); // Vẽ chữ vào giữa khung ảo
 }
 
-function modelReady() {
-  console.log('Handpose model ready!');
-}
-
 function draw() {
   background(10, 10, 30); 
   
@@ -78,15 +83,15 @@ function draw() {
     let hand = hands[0];
     
     // Đo độ to nhỏ
-    let wrist = hand.landmarks[0];
-    let middleFinger = hand.landmarks[9];
-    let d = dist(wrist[0], wrist[1], middleFinger[0], middleFinger[1]);
+    let wrist = hand.keypoints[0];
+    let middleFinger = hand.keypoints[9];
+    let d = dist(wrist.x, wrist.y, middleFinger.x, middleFinger.y);
     treeScale = map(d, 50, 200, 0.5, 2.5, true);
 
     // Đo nắm/thả
-    let indexTip = hand.landmarks[8];
-    let thumbTip = hand.landmarks[4];
-    let pinchDist = dist(indexTip[0], indexTip[1], thumbTip[0], thumbTip[1]);
+    let indexTip = hand.keypoints[8];
+    let thumbTip = hand.keypoints[4];
+    let pinchDist = dist(indexTip.x, indexTip.y, thumbTip.x, thumbTip.y);
     
     if (pinchDist < 40) isFist = true;
     else isFist = false;
@@ -115,7 +120,7 @@ function draw() {
   // Vẽ hạt
   for (let p of particles) {
     p.update(isFist, treeScale);
-    p.show(treeScale);
+    p.show();
   }
 }
 
@@ -156,13 +161,12 @@ class Particle {
     }
   }
 
-  show(scale) {
+  show() {
     push();
     translate(this.pos.x, this.pos.y, this.pos.z);
     noStroke();
     fill(this.color);
-    sphere(3 * scale); // Hạt cũng to nhỏ theo scale
+    sphere(3 * treeScale); // Hạt cũng to nhỏ theo scale
     pop();
   }
 }
-
